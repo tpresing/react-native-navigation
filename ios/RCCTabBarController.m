@@ -16,6 +16,7 @@
 
 @implementation RCCTabBarController
 
+CGFloat tabBarHeightSize = 85;
 
 -(UIInterfaceOrientationMask)supportedInterfaceOrientations {
     return [self supportedControllerOrientations];
@@ -123,6 +124,32 @@
         if (tabBarHideShadow) {
             self.tabBar.clipsToBounds = [tabBarHideShadow boolValue] ? YES : NO;
         }
+
+        // Top border
+        NSString *tabBarBorder = tabsStyle[@"tabBarBorder"];
+        NSString *tabBarBorderColor = tabsStyle[@"tabBarBorderColor"];
+        if (tabBarBorder) {
+            CALayer *tabBarBorderFrame = [CALayer layer];
+            tabBarBorderFrame.frame = CGRectMake(0.0f, 0.0f, self.view.frame.size.width, [RCTConvert CGFloat:tabBarBorder]);
+
+            if(tabBarBorderColor){
+                tabBarBorderFrame.backgroundColor = [[RCTConvert UIColor:tabBarBorderColor] CGColor];
+            }
+
+            // Add the later to the tab bar's existing layer
+            [self.tabBar.layer addSublayer:tabBarBorderFrame];
+        }
+
+        // Tab Bar Height
+        // Height TODO
+        //NSString *tabBarHeight = tabsStyle[@"tabBarHeight"];
+        //if(tabBarHeight){
+        //    NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
+        //    f.numberStyle = NSNumberFormatterDecimalStyle;
+        //    NSNumber *tabBarHeightNumber = [f numberFromString:tabBarHeight];
+        //    tabBarHeightSize = [RCTConvert CGFloat:tabBarHeightNumber];
+        //}
+        
     }
     
     NSMutableArray *viewControllers = [NSMutableArray array];
@@ -153,7 +180,11 @@
         }
         UIImage *iconImageSelected = nil;
         id selectedIcon = tabItemLayout[@"props"][@"selectedIcon"];
-        if (selectedIcon) {
+        id keepOriginalSelected = tabItemLayout[@"props"][@"selectedIconKeepOriginal"];
+
+        if(keepOriginalSelected){
+            iconImageSelected = [[RCTConvert UIImage:selectedIcon] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        }else if (selectedIcon) {
             iconImageSelected = [RCTConvert UIImage:selectedIcon];
         } else {
             iconImageSelected = [RCTConvert UIImage:icon];
@@ -188,8 +219,14 @@
         if (!selectedAttributes[NSForegroundColorAttributeName] && selectedLabelColor) {
             selectedAttributes[NSForegroundColorAttributeName] = selectedLabelColor;
         }
+
+        id labelBottomPosition = tabItemLayout[@"props"][@"labelBottomPosition"];
+        if(labelBottomPosition){
+            viewController.tabBarItem.titlePositionAdjustment = UIOffsetMake(0,[RCTConvert CGFloat:labelBottomPosition]);
+        }
         
         [viewController.tabBarItem setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
+
         // create badge
         NSObject *badge = tabItemLayout[@"props"][@"badge"];
         if (badge == nil || [badge isEqual:[NSNull null]]) {
@@ -379,6 +416,12 @@
     }
 }
 
+- (void)viewWillLayoutSubviews {
 
+    CGRect tabFrame = self.tabBar.frame;
+    tabFrame.size.height = [[NSNumber numberWithFloat:tabBarHeightSize] intValue];
+    tabFrame.origin.y = self.view.frame.size.height - [[NSNumber numberWithFloat:tabBarHeightSize] intValue];
+    self.tabBar.frame = tabFrame;
+}
 
 @end
